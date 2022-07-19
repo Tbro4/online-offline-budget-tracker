@@ -14,8 +14,13 @@ request.onupgradeneeded = (event) => {
   //add const before db?
   db = event.target.result;
 
-  const objectStore = db.createObjectStore("items", { keyPath: "name" });
+  const objectStore = db.createObjectStore("items", {
+    keyPath: "id",
+    autoIncrement: true,
+    unique: true,
+  });
 
+  objectStore.createIndex("name", "name", { unique: false });
   objectStore.createIndex("value", "value", { unique: false });
 };
 
