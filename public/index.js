@@ -1,6 +1,38 @@
 let transactions = [];
 let myChart;
 
+let db;
+//creating the indexedDB
+const dbName = "budget";
+
+const request = indexedDB.open(dbName, 1);
+
+request.onerror = (event) => {
+  // Handle errors.
+};
+request.onupgradeneeded = (event) => {
+  //add const before db?
+  db = event.target.result;
+
+  const objectStore = db.createObjectStore("items", { keyPath: "name" });
+
+  objectStore.createIndex("value", "value", { unique: false });
+};
+
+//gets called if there is an error sending data to the database so we can instead push it to IndexDB
+function saveRecord(transaction) {
+  console.log(transaction);
+  const itemData = [{ name: transaction.name, value: transaction.value }];
+
+  // Store values in the newly created objectStore.
+  const itemObjectStore = db
+    .transaction("items", "readwrite")
+    .objectStore("items");
+  itemData.forEach(function (item) {
+    itemObjectStore.add(item);
+  });
+}
+
 fetch("/api/transaction")
   .then((response) => {
     return response.json();
@@ -14,71 +46,6 @@ fetch("/api/transaction")
     populateTable();
     populateChart();
   });
-
-//gets called if there is an error sending data to the database so we can instead push it to IndexDB
-function saveRecord(transaction) {
-  console.log(transaction);
-  const itemData = [{ name: transaction.name, value: transaction.value }];
-  const dbName = "budget";
-
-  const request = indexedDB.open(dbName, 1);
-
-  request.onerror = (event) => {
-    // Handle errors.
-  };
-  request.onupgradeneeded = (event) => {
-    const db = event.target.result;
-
-    // Create an objectStore to hold information about our customers. We're
-    // going to use "ssn" as our key path because it's guaranteed to be
-    // unique - or at least that's what I was told during the kickoff meeting.
-    const objectStore = db.createObjectStore("items", { keyPath: "name" });
-
-    // Create an index to search customers by name. We may have duplicates
-    // so we can't use a unique index.
-    objectStore.createIndex("value", "value", { unique: false });
-
-    // Create an index to search customers by email. We want to ensure that
-    // no two customers have the same email, so use a unique index.
-    // objectStore.createIndex("email", "email", { unique: true });
-
-    // Use transaction oncomplete to make sure the objectStore creation is
-    // finished before adding data into it.
-    objectStore.transaction.oncomplete = (event) => {
-      // Store values in the newly created objectStore.
-      const itemObjectStore = db
-        .transaction("items", "readwrite")
-        .objectStore("items");
-      itemData.forEach(function (item) {
-        itemObjectStore.add(item);
-      });
-    };
-  };
-
-  // const request = indexedDB.open("Budget", 1);
-
-  // request.onupgradeneeded = (event) => {
-  //   const db = event.target.result;
-
-  //   const budgetItemStore = db.createObjectStore("Items", {
-  //     keyPath: "name",
-  //   });
-  //   budgetItemStore.createIndex("value", "value");
-  // };
-  // console.log("saveRecord called");
-  // console.log(typeof transaction.name);
-  // console.log(typeof transaction.value);
-  // request.onsuccess = () => {
-  //   const db = request.result;
-  //   const transaction = db.transaction(["Items"], "readwrite");
-  //   const budgetItemStore = transaction.objectStore("Items");
-  //   // const value = budgetItemStore.index("value");
-  //   let name = transaction.name;
-  //   let value = transaction.value;
-
-  //   budgetItemStore.add({ name: name, value: value });
-  // };
-}
 
 function populateTotal() {
   // reduce transaction amounts to a single total value
